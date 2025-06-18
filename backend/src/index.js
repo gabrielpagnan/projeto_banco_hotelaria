@@ -4,19 +4,42 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3001;
+
+console.log('Configurações do banco:', {
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+});
 
 // Configuração do banco de dados
 const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'hotel',
-  password: process.env.DB_PASSWORD || 'sua_senha',
+  password: process.env.DB_PASSWORD || 'postgres',
   port: process.env.DB_PORT || 5432,
+});
+
+// Teste de conexão com o banco
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('Erro ao conectar ao banco:', err.message);
+    return;
+  }
+  console.log('Conectado ao banco de dados com sucesso!');
+  release();
 });
 
 app.use(cors());
 app.use(express.json());
+
+// Middleware para log de requisições
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`, req.body);
+  next();
+});
 
 // Rotas para Clientes
 app.get('/clientes', async (req, res) => {
@@ -90,6 +113,7 @@ app.get('/quartos', async (req, res) => {
     const { rows } = await pool.query('SELECT * FROM quartos ORDER BY numero');
     res.json(rows);
   } catch (error) {
+    console.error('Erro ao buscar quartos:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -103,19 +127,30 @@ app.get('/quartos/:id', async (req, res) => {
     }
     res.json(rows[0]);
   } catch (error) {
+    console.error('Erro ao buscar quarto:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 app.post('/quartos', async (req, res) => {
   try {
+    console.log('Dados recebidos:', req.body);
     const { numero, tipo, capacidade, preco_diaria, status } = req.body;
+    
+    // Validação dos dados
+    if (!numero || !tipo || !capacidade || !preco_diaria) {
+      console.log('Dados inválidos');
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+    }
+
     const { rows } = await pool.query(
       'INSERT INTO quartos (numero, tipo, capacidade, preco_diaria, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [numero, tipo, capacidade, preco_diaria, status]
     );
+    console.log('Quarto criado:', rows[0]);
     res.status(201).json(rows[0]);
   } catch (error) {
+    console.error('Erro ao criar quarto:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -133,6 +168,7 @@ app.put('/quartos/:id', async (req, res) => {
     }
     res.json(rows[0]);
   } catch (error) {
+    console.error('Erro ao atualizar quarto:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -146,6 +182,7 @@ app.delete('/quartos/:id', async (req, res) => {
     }
     res.status(204).send();
   } catch (error) {
+    console.error('Erro ao excluir quarto:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -279,4 +316,4 @@ app.delete('/reservas/:id', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
-}); 
+});

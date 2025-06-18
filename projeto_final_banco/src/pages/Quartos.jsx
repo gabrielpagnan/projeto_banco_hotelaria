@@ -16,13 +16,25 @@ import {
   DialogActions,
   TextField,
   MenuItem,
+  Snackbar,
+  Alert,
+  Box,
+  CircularProgress,
 } from '@mui/material';
 import axios from 'axios';
+
+const API_URL = 'http://localhost:3001';
 
 function Quartos() {
   const [quartos, setQuartos] = useState([]);
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
   const [formData, setFormData] = useState({
     numero: '',
     tipo: '',
@@ -30,6 +42,7 @@ function Quartos() {
     preco_diaria: '',
     status: 'disponível',
   });
+  const [formErrors, setFormErrors] = useState({});
 
   const tiposQuarto = ['solteiro', 'casal', 'luxo', 'triplo'];
   const statusQuarto = ['disponível', 'ocupado', 'manutenção'];
@@ -40,15 +53,23 @@ function Quartos() {
 
   const carregarQuartos = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/quartos');
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/quartos`);
       setQuartos(response.data);
     } catch (error) {
-      console.error('Erro ao carregar quartos:', error);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar quartos: ' + error.message,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleClickOpen = () => {
     setOpen(true);
+    setFormErrors({});
   };
 
   const handleClose = () => {
@@ -61,6 +82,7 @@ function Quartos() {
       preco_diaria: '',
       status: 'disponível',
     });
+    setFormErrors({});
   };
 
   const handleInputChange = (e) => {
@@ -69,10 +91,35 @@ function Quartos() {
       ...prev,
       [name]: value,
     }));
+    // Limpa o erro do campo quando o usuário começa a digitar
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validarFormulario = () => {
+    const erros = {};
+    if (!formData.numero) erros.numero = 'Número é obrigatório';
+    if (!formData.tipo) erros.tipo = 'Tipo é obrigatório';
+    if (!formData.capacidade) erros.capacidade = 'Capacidade é obrigatória';
+    if (!formData.preco_diaria) erros.preco_diaria = 'Preço da diária é obrigatório';
+    if (parseFloat(formData.preco_diaria) <= 0) erros.preco_diaria = 'Preço deve ser maior que zero';
+    if (parseInt(formData.capacidade) <= 0) erros.capacidade = 'Capacidade deve ser maior que zero';
+    return erros;
   };
 
   const handleSubmit = async () => {
     try {
+      const erros = validarFormulario();
+      if (Object.keys(erros).length > 0) {
+        setFormErrors(erros);
+        return;
+      }
+
+      setLoading(true);
       const dadosParaEnviar = {
         ...formData,
         capacidade: parseInt(formData.capacidade),
@@ -81,14 +128,30 @@ function Quartos() {
       };
 
       if (editando) {
-        await axios.put(`http://localhost:3000/quartos/${editando}`, dadosParaEnviar);
+        await axios.put(`${API_URL}/quartos/${editando}`, dadosParaEnviar);
+        setSnackbar({
+          open: true,
+          message: 'Quarto atualizado com sucesso!',
+          severity: 'success'
+        });
       } else {
-        await axios.post('http://localhost:3000/quartos', dadosParaEnviar);
+        await axios.post(`${API_URL}/quartos`, dadosParaEnviar);
+        setSnackbar({
+          open: true,
+          message: 'Quarto criado com sucesso!',
+          severity: 'success'
+        });
       }
       handleClose();
       carregarQuartos();
     } catch (error) {
-      console.error('Erro ao salvar quarto:', error);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao salvar quarto: ' + error.message,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,33 +164,61 @@ function Quartos() {
       preco_diaria: quarto.preco_diaria.toString(),
       status: quarto.status,
     });
+    setFormErrors({});
     setOpen(true);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este quarto?')) {
       try {
-        await axios.delete(`http://localhost:3000/quartos/${id}`);
+        setLoading(true);
+        await axios.delete(`${API_URL}/quartos/${id}`);
+        setSnackbar({
+          open: true,
+          message: 'Quarto excluído com sucesso!',
+          severity: 'success'
+        });
         carregarQuartos();
       } catch (error) {
-        console.error('Erro ao excluir quarto:', error);
+        setSnackbar({
+          open: true,
+          message: 'Erro ao excluir quarto: ' + error.message,
+          severity: 'error'
+        });
+      } finally {
+        setLoading(false);
       }
     }
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbar(prev => ({
+      ...prev,
+      open: false
+    }));
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Gerenciamento de Quartos
-      </Typography>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleClickOpen}
-        sx={{ mb: 2 }}
-      >
-        Novo Quarto
-      </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">
+          Gerenciamento de Quartos
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleClickOpen}
+          disabled={loading}
+        >
+          Novo Quarto
+        </Button>
+      </Box>
+
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
       <TableContainer component={Paper}>
         <Table>
@@ -153,13 +244,14 @@ function Quartos() {
                   <Button
                     color="primary"
                     onClick={() => handleEdit(quarto)}
-                    sx={{ mr: 1 }}
+                    disabled={loading}
                   >
                     Editar
                   </Button>
                   <Button
                     color="error"
                     onClick={() => handleDelete(quarto.id_quarto)}
+                    disabled={loading}
                   >
                     Excluir
                   </Button>
@@ -171,76 +263,96 @@ function Quartos() {
       </TableContainer>
 
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>
-          {editando ? 'Editar Quarto' : 'Novo Quarto'}
-        </DialogTitle>
+        <DialogTitle>{editando ? 'Editar Quarto' : 'Novo Quarto'}</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus
             margin="dense"
-            name="numero"
             label="Número"
             type="number"
             fullWidth
+            name="numero"
             value={formData.numero}
             onChange={handleInputChange}
+            error={!!formErrors.numero}
+            helperText={formErrors.numero}
           />
           <TextField
             select
             margin="dense"
-            name="tipo"
             label="Tipo"
             fullWidth
+            name="tipo"
             value={formData.tipo}
             onChange={handleInputChange}
+            error={!!formErrors.tipo}
+            helperText={formErrors.tipo}
           >
             {tiposQuarto.map((tipo) => (
               <MenuItem key={tipo} value={tipo}>
-                {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                {tipo}
               </MenuItem>
             ))}
           </TextField>
           <TextField
             margin="dense"
-            name="capacidade"
             label="Capacidade"
             type="number"
             fullWidth
+            name="capacidade"
             value={formData.capacidade}
             onChange={handleInputChange}
+            error={!!formErrors.capacidade}
+            helperText={formErrors.capacidade}
           />
           <TextField
             margin="dense"
-            name="preco_diaria"
             label="Preço Diária"
             type="number"
             fullWidth
+            name="preco_diaria"
             value={formData.preco_diaria}
             onChange={handleInputChange}
+            error={!!formErrors.preco_diaria}
+            helperText={formErrors.preco_diaria}
           />
           <TextField
             select
             margin="dense"
-            name="status"
             label="Status"
             fullWidth
+            name="status"
             value={formData.status}
             onChange={handleInputChange}
           >
             {statusQuarto.map((status) => (
               <MenuItem key={status} value={status}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+                {status}
               </MenuItem>
             ))}
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
-            Salvar
+          <Button onClick={handleClose} disabled={loading}>Cancelar</Button>
+          <Button onClick={handleSubmit} color="primary" disabled={loading}>
+            {loading ? <CircularProgress size={24} /> : 'Salvar'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
