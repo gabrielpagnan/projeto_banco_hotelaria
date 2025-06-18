@@ -18,6 +18,8 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
+const API_URL = 'http://localhost:3001';
+
 function Clientes() {
   const [clientes, setClientes] = useState([]);
   const [open, setOpen] = useState(false);
@@ -35,7 +37,7 @@ function Clientes() {
 
   const carregarClientes = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/clientes');
+      const response = await axios.get(`${API_URL}/clientes`);
       setClientes(response.data);
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
@@ -68,9 +70,9 @@ function Clientes() {
   const handleSubmit = async () => {
     try {
       if (editando) {
-        await axios.put(`http://localhost:3000/clientes/${editando}`, formData);
+        await axios.put(`${API_URL}/clientes/${editando}`, formData);
       } else {
-        await axios.post('http://localhost:3000/clientes', formData);
+        await axios.post(`${API_URL}/clientes`, formData);
       }
       handleClose();
       carregarClientes();
@@ -93,7 +95,7 @@ function Clientes() {
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
       try {
-        await axios.delete(`http://localhost:3000/clientes/${id}`);
+        await axios.delete(`${API_URL}/clientes/${id}`);
         carregarClientes();
       } catch (error) {
         console.error('Erro ao excluir cliente:', error);

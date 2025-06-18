@@ -23,6 +23,8 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
+const API_URL = 'http://localhost:3001';
+
 function Reservas() {
   const [reservas, setReservas] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -44,9 +46,9 @@ function Reservas() {
   const carregarDados = async () => {
     try {
       const [reservasRes, clientesRes, quartosRes] = await Promise.all([
-        axios.get('http://localhost:3000/reservas'),
-        axios.get('http://localhost:3000/clientes'),
-        axios.get('http://localhost:3000/quartos'),
+        axios.get(`${API_URL}/reservas`),
+        axios.get(`${API_URL}/clientes`),
+        axios.get(`${API_URL}/quartos`),
       ]);
 
       setReservas(reservasRes.data);
@@ -102,9 +104,9 @@ function Reservas() {
       };
 
       if (editando) {
-        await axios.put(`http://localhost:3000/reservas/${editando}`, dadosParaEnviar);
+        await axios.put(`${API_URL}/reservas/${editando}`, dadosParaEnviar);
       } else {
-        await axios.post('http://localhost:3000/reservas', dadosParaEnviar);
+        await axios.post(`${API_URL}/reservas`, dadosParaEnviar);
       }
       handleClose();
       carregarDados();
@@ -115,9 +117,9 @@ function Reservas() {
 
   const handleEdit = async (reserva) => {
     try {
-      const reservaCompleta = await axios.get(`http://localhost:3000/reservas/${reserva.id_reserva}`);
+      const reservaCompleta = await axios.get(`${API_URL}/reservas/${reserva.id_reserva}`);
       const quartosReserva = reservaCompleta.data.quartos || [];
-      
+
       setEditando(reserva.id_reserva);
       setFormData({
         id_cliente: reserva.id_cliente.toString(),
@@ -135,7 +137,7 @@ function Reservas() {
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir esta reserva?')) {
       try {
-        await axios.delete(`http://localhost:3000/reservas/${id}`);
+        await axios.delete(`${API_URL}/reservas/${id}`);
         carregarDados();
       } catch (error) {
         console.error('Erro ao excluir reserva:', error);

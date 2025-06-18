@@ -238,7 +238,7 @@ function Quartos() {
                 <TableCell>{quarto.numero}</TableCell>
                 <TableCell>{quarto.tipo}</TableCell>
                 <TableCell>{quarto.capacidade}</TableCell>
-                <TableCell>R$ {quarto.preco_diaria.toFixed(2)}</TableCell>
+                <TableCell>R$ {Number(quarto.preco_diaria).toFixed(2)}</TableCell>
                 <TableCell>{quarto.status}</TableCell>
                 <TableCell>
                   <Button
@@ -339,14 +339,14 @@ function Quartos() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={handleSnackbarClose} 
+        <Alert
+          onClose={handleSnackbarClose}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >
